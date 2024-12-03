@@ -47,7 +47,7 @@ func (s *SNSService) PublishMessage(ctx context.Context, message string) {
 		TopicArn: &s.Topic,
 	})
 	if err != nil {
-		log.Fatalf("Fail to send SNS notification: %v", err)
+		log.Printf("fail to send SNS notification: %v", err)
 	} else {
 		log.Println("SNS notification sent successfully!")
 	}
