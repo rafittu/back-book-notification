@@ -1,4 +1,4 @@
-package service
+package services
 
 import (
 	"errors"
@@ -25,16 +25,30 @@ func generateNumbers() []int {
 	return pages
 }
 
-func (s *PageService) ChooseRandom() (int, error) {
-	if len(s.pages) == 0 {
+func (s *PageService) ChooseRandom(availablePages []int, sentPages []int) (int, error) {
+	remainingPages := []int{}
+	for _, page := range availablePages {
+		if !contains(sentPages, page) {
+			remainingPages = append(remainingPages, page)
+		}
+	}
+
+	if len(remainingPages) == 0 {
 		return 0, errors.New("page list is empty")
 	}
 
 	randSource := rand.New(rand.NewSource(time.Now().UnixNano()))
-	randomIndex := randSource.Intn(len(s.pages))
+	randomIndex := randSource.Intn(len(remainingPages))
 
-	randomNumber := s.pages[randomIndex]
-	s.pages = append(s.pages[:randomIndex], s.pages[randomIndex+1:]...)
-
+	randomNumber := remainingPages[randomIndex]
 	return randomNumber, nil
+}
+
+func contains(slice []int, value int) bool {
+	for _, v := range slice {
+		if v == value {
+			return true
+		}
+	}
+	return false
 }
