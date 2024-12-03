@@ -10,16 +10,16 @@ type PageService struct {
 	pages []int
 }
 
-func NewPageService() *PageService {
+func NewPageService(totalPages int) *PageService {
 	return &PageService{
-		pages: generateNumbers(),
+		pages: generateNumbers(totalPages),
 	}
 }
 
-func generateNumbers() []int {
+func generateNumbers(totalPages int) []int {
 	var pages []int
 	// set number of pages in the book, 143
-	for i := 1; i <= 143; i++ {
+	for i := 1; i <= totalPages; i++ {
 		pages = append(pages, i)
 	}
 	return pages

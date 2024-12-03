@@ -36,14 +36,16 @@ func NewSNSService(cfg *config.Config) (*SNSService, error) {
 	}, nil
 }
 
-func (s *SNSService) PublishMessage(ctx context.Context, message string) {
+func (s *SNSService) PublishMessage(ctx context.Context, message string) error {
 	_, err := s.Client.Publish(ctx, &sns.PublishInput{
 		Message:  &message,
 		TopicArn: &s.Topic,
 	})
 	if err != nil {
 		log.Printf("fail to send SNS notification: %v", err)
+		return fmt.Errorf("fail to send SNS notification: %w", err)
 	} else {
 		log.Println("SNS notification sent successfully!")
+		return nil
 	}
 }
