@@ -25,10 +25,20 @@ func generateNumbers() []int {
 	return pages
 }
 
+func toSet(slice []int) map[int]struct{} {
+	set := make(map[int]struct{}, len(slice))
+	for _, v := range slice {
+		set[v] = struct{}{}
+	}
+	return set
+}
+
 func (s *PageService) ChooseRandom(availablePages []int, sentPages []int) (int, error) {
-	remainingPages := []int{}
+	sentSet := toSet(sentPages)
+
+	remainingPages := make([]int, 0)
 	for _, page := range availablePages {
-		if !contains(sentPages, page) {
+		if _, exists := sentSet[page]; !exists {
 			remainingPages = append(remainingPages, page)
 		}
 	}
@@ -38,17 +48,6 @@ func (s *PageService) ChooseRandom(availablePages []int, sentPages []int) (int, 
 	}
 
 	randSource := rand.New(rand.NewSource(time.Now().UnixNano()))
-	randomIndex := randSource.Intn(len(remainingPages))
 
-	randomNumber := remainingPages[randomIndex]
-	return randomNumber, nil
-}
-
-func contains(slice []int, value int) bool {
-	for _, v := range slice {
-		if v == value {
-			return true
-		}
-	}
-	return false
+	return remainingPages[randSource.Intn(len(remainingPages))], nil
 }
