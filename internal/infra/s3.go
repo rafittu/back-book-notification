@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
-	"os"
 
-	"github.com/aws/aws-sdk-go-v2/config"
+	"bookNotification/config"
+
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/joho/godotenv"
 )
 
 type S3Storage struct {
@@ -19,31 +20,24 @@ type S3Storage struct {
 	Key    string
 }
 
-func NewS3Storage() *S3Storage {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalf("Fail to load .env: %v", err)
+func NewS3Storage(cfg *config.Config) (*S3Storage, error) {
+	if cfg.AWSAccessKey == nil || cfg.AWSSecretKey == nil {
+		return nil, fmt.Errorf("missing AWS credentials")
 	}
 
-	accessKeyID := os.Getenv("AWS_ACCESS_KEY_ID")
-	secretAccessKey := os.Getenv("AWS_SECRET_ACCESS_KEY")
-	region := os.Getenv("AWS_REGION")
-	bucket := os.Getenv("AWS_BUCKET_NAME")
-	key := os.Getenv("AWS_KEY")
-
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion(region),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKeyID, secretAccessKey, "")),
+	awsCfg, err := awsConfig.LoadDefaultConfig(context.TODO(),
+		awsConfig.WithRegion(*cfg.AWSRegion),
+		awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(*cfg.AWSAccessKey, *cfg.AWSSecretKey, "")),
 	)
 	if err != nil {
-		log.Fatalf("Error to setup AWS: %v", err)
+		return nil, fmt.Errorf("error setting up AWS: %w", err)
 	}
 
 	return &S3Storage{
-		Client: s3.NewFromConfig(cfg),
-		Bucket: bucket,
-		Key:    key,
-	}
+		Client: s3.NewFromConfig(awsCfg),
+		Bucket: *cfg.AWSBucket,
+		Key:    *cfg.AWSKey,
+	}, nil
 }
 
 func (s *S3Storage) LoadPages(ctx context.Context) []int {
