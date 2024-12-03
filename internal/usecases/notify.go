@@ -2,9 +2,10 @@ package usecases
 
 import (
 	"context"
+	"fmt"
 	"log"
-	"strconv"
 
+	"bookNotification/config"
 	"bookNotification/internal/core/services"
 	"bookNotification/internal/infra"
 )
@@ -13,23 +14,27 @@ type NotifyUseCase struct {
 	PageService services.PageService
 	S3Storage     *infra.S3Storage
 	SNSNotifier   *infra.SNSService
+	Config      *config.Config
 }
 
-func NewNotifyUseCase(pageService services.PageService, s3Storage *infra.S3Storage, snsNotifier *infra.SNSService) *NotifyUseCase {
+func NewNotifyUseCase(pageService services.PageService, s3Storage *infra.S3Storage, snsNotifier *infra.SNSService, cfg *config.Config) (*NotifyUseCase, error) {
+	if s3Storage == nil || snsNotifier == nil || cfg == nil {
+		return nil, fmt.Errorf("dependencies cannot be nil")
+	}
+
 	return &NotifyUseCase{
 		PageService: pageService,
-		S3Storage:     s3Storage,
-		SNSNotifier:   snsNotifier,
-	}
+		S3Storage:   s3Storage,
+		SNSNotifier: snsNotifier,
+		Config:      cfg,
+	}, nil
 }
 
 func (uc *NotifyUseCase) Execute(ctx context.Context) {
 	sentPages := uc.S3Storage.LoadPages(ctx)
 
-	totalPages := 143
-
-	availablePages := make([]int, 0, totalPages)
-	for i := 1; i <= totalPages; i++ {
+	availablePages := make([]int, 0, uc.Config.TotalPages)
+	for i := 1; i <= uc.Config.TotalPages; i++ {
 		availablePages = append(availablePages, i)
 	}
 
@@ -38,13 +43,10 @@ func (uc *NotifyUseCase) Execute(ctx context.Context) {
 		log.Fatalf("Fail to choose page: %v", err)
 	}
 
-	if page == -1 {
-		log.Println("All pages have been sent.")
-		return
+	message := fmt.Sprintf("A página do dia é: %d", page)
+	if err := uc.SNSNotifier.PublishMessage(ctx, message); err != nil {
+		log.Fatalf("Fail to publish message: %v", err)
 	}
-
-	message := "A página do dia é: " + strconv.Itoa(page)
-	uc.SNSNotifier.PublishMessage(ctx, message)
 
 	sentPages = append(sentPages, page)
 	uc.S3Storage.SavePages(ctx, sentPages)

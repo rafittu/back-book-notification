@@ -2,13 +2,14 @@ package infra
 
 import (
 	"context"
+	"fmt"
 	"log"
-	"os"
 
-	"github.com/aws/aws-sdk-go-v2/config"
+	"bookNotification/config"
+
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
-	"github.com/joho/godotenv"
 )
 
 type SNSService struct {
@@ -16,39 +17,35 @@ type SNSService struct {
 	Topic  string
 }
 
-func NewSNSService() *SNSService {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalf("Fail to load .env: %v", err)
+func NewSNSService(cfg *config.Config) (*SNSService, error) {
+	if cfg.AWSSNSTopicARN == nil {
+		return nil, fmt.Errorf("missing SNS topic ARN")
 	}
 
-	accessKeyID := os.Getenv("AWS_ACCESS_KEY_ID")
-	secretAccessKey := os.Getenv("AWS_SECRET_ACCESS_KEY")
-	region := os.Getenv("AWS_REGION")
-	topicARN := os.Getenv("AWS_SNS_TOPIC_ARN")
-
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion(region),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKeyID, secretAccessKey, "")),
+	awsCfg, err := awsConfig.LoadDefaultConfig(context.TODO(),
+		awsConfig.WithRegion(*cfg.AWSRegion),
+		awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(*cfg.AWSAccessKey, *cfg.AWSSecretKey, "")),
 	)
 	if err != nil {
-		log.Fatalf("Fail to setup AWS: %v", err)
+		return nil, fmt.Errorf("error setting up AWS: %w", err)
 	}
 
 	return &SNSService{
-		Client: sns.NewFromConfig(cfg),
-		Topic:  topicARN,
-	}
+		Client: sns.NewFromConfig(awsCfg),
+		Topic:  *cfg.AWSSNSTopicARN,
+	}, nil
 }
 
-func (s *SNSService) PublishMessage(ctx context.Context, message string) {
+func (s *SNSService) PublishMessage(ctx context.Context, message string) error {
 	_, err := s.Client.Publish(ctx, &sns.PublishInput{
 		Message:  &message,
 		TopicArn: &s.Topic,
 	})
 	if err != nil {
-		log.Fatalf("Fail to send SNS notification: %v", err)
+		log.Printf("fail to send SNS notification: %v", err)
+		return fmt.Errorf("fail to send SNS notification: %w", err)
 	} else {
 		log.Println("SNS notification sent successfully!")
+		return nil
 	}
 }
