@@ -20,7 +20,7 @@ func LoadConfig() Config {
 
 	return Config{
 		AWSRegion:   os.Getenv("AWS_REGION"),
-		AWSBucket:   os.Getenv("AWS_BUCKET"),
+		AWSBucket:   os.Getenv("AWS_BUCKET_NAME"),
 		SNSTopicARN: os.Getenv("AWS_SNS_TOPIC_ARN"),
 	}
 }
