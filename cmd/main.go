@@ -1,19 +1,41 @@
 package main
 
 import (
+	"context"
+	"log"
+	"time"
+
+	"bookNotification/config"
 	"bookNotification/internal/core/services"
 	"bookNotification/internal/infra"
 	"bookNotification/internal/usecases"
-	"context"
 )
 
 func main() {
-	s3Storage := infra.NewS3Storage()
-	snsNotifier := infra.NewSNSService()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	pageService := services.NewPageService()
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
 
-	notifyUseCase := usecases.NewNotifyUseCase(*pageService, s3Storage, snsNotifier)
+	s3Storage, err := infra.NewS3Storage(cfg)
+	if err != nil {
+		log.Fatalf("Failed to initialize S3 storage: %v", err)
+	}
 
-	notifyUseCase.Execute(context.TODO())
+	snsNotifier, err := infra.NewSNSService(cfg)
+	if err != nil {
+		log.Fatalf("Failed to initialize SNS service: %v", err)
+	}
+
+	pageService := services.NewPageService(cfg.TotalPages)
+
+	notifyUseCase, err := usecases.NewNotifyUseCase(*pageService, s3Storage, snsNotifier, cfg)
+	if err != nil {
+		log.Fatalf("Failed to create NotifyUseCase: %v", err)
+	}
+
+	notifyUseCase.Execute(ctx)
 }
