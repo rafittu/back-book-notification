@@ -8,7 +8,6 @@ import (
 	"bookNotification/config"
 
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 )
 
@@ -22,10 +21,7 @@ func NewSNSService(cfg *config.Config) (*SNSService, error) {
 		return nil, fmt.Errorf("missing SNS topic ARN")
 	}
 
-	awsCfg, err := awsConfig.LoadDefaultConfig(context.TODO(),
-		awsConfig.WithRegion(*cfg.AWSRegion),
-		awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(*cfg.AWSAccessKey, *cfg.AWSSecretKey, "")),
-	)
+	awsCfg, err := awsConfig.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		return nil, fmt.Errorf("error setting up AWS: %w", err)
 	}
