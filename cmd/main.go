@@ -9,9 +9,11 @@ import (
 	"bookNotification/internal/core/services"
 	"bookNotification/internal/infra"
 	"bookNotification/internal/usecases"
+
+	"github.com/aws/aws-lambda-go/lambda"
 )
 
-func main() {
+func Handler() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -38,4 +40,8 @@ func main() {
 	}
 
 	notifyUseCase.Execute(ctx)
+}
+
+func main() {
+	lambda.Start(Handler)
 }
