@@ -1,26 +1,35 @@
 package config
 
 import (
-	"log"
+	"fmt"
 	"os"
-
-	"github.com/joho/godotenv"
+	"strconv"
 )
 
 type Config struct {
-	AWSRegion    string
-	AWSBucket    string
-	SNSTopicARN  string
+	AWSBucket      *string
+	AWSKey         *string
+	AWSSNSTopicARN *string
+	TotalPages     int
 }
 
-func LoadConfig() Config {
-	if err := godotenv.Load(".env"); err != nil {
-		log.Fatalf("Failed to load .env: %v", err)
+func LoadConfig() (*Config, error) {
+	totalPages, err := strconv.Atoi(os.Getenv("TOTAL_PAGES"))
+	if err != nil {
+		return nil, fmt.Errorf("invalid TOTAL_PAGES value: %w", err)
 	}
 
-	return Config{
-		AWSRegion:   os.Getenv("AWS_REGION"),
-		AWSBucket:   os.Getenv("AWS_BUCKET"),
-		SNSTopicARN: os.Getenv("AWS_SNS_TOPIC_ARN"),
+	return &Config{
+		AWSBucket:      strPtr(os.Getenv("AWS_BUCKET_NAME")),
+		AWSKey:         strPtr(os.Getenv("AWS_KEY")),
+		AWSSNSTopicARN: strPtr(os.Getenv("AWS_SNS_TOPIC_ARN")),
+		TotalPages:     totalPages,
+	}, nil
+}
+
+func strPtr(s string) *string {
+	if s == "" {
+		return nil
 	}
+	return &s
 }
